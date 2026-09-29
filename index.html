@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>독서노트</title>
+  <meta name="theme-color" content="#2f4a3a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="독서노트">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>독서노트</h1>
+    <button id="pendingBtn" class="pending" hidden title="대기 중인 항목 재전송">대기 <b id="pendingCount">0</b></button>
+    <button id="settingsBtn" class="icon-btn" aria-label="설정">⚙︎</button>
+  </header>
+
+  <!-- 1. 홈: 책 제목 + 사진 -->
+  <main id="home" class="screen">
+    <label class="field">
+      <span>책 제목</span>
+      <div class="autocomplete">
+        <input id="titleInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="책 제목을 입력하세요">
+        <ul id="titleSuggest" class="suggest" hidden></ul>
+      </div>
+    </label>
+
+    <div class="photo-buttons">
+      <button id="cameraBtn" class="big primary">📷 촬영</button>
+      <button id="albumBtn" class="big">🖼 앨범</button>
+    </div>
+    <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+    <input id="albumInput" type="file" accept="image/*" hidden>
+
+    <p id="configHint" class="hint" hidden>먼저 ⚙︎ 설정에서 GitHub 저장소와 토큰을 입력하세요. 설정 전에 저장한 항목은 대기열에 보관됩니다.</p>
+  </main>
+
+  <!-- 2. 수정 화면 -->
+  <main id="edit" class="screen" hidden>
+    <figure class="photo">
+      <img id="photo" alt="찍은 페이지">
+      <figcaption>사진은 저장되지 않습니다 · 탭하면 확대</figcaption>
+    </figure>
+
+    <div class="edit-meta">
+      <div class="book-name" id="editTitle"></div>
+      <label class="page-field">
+        <span>p.</span>
+        <input id="pageInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="쪽">
+      </label>
+    </div>
+    <button id="pageSuggest" class="chip" hidden></button>
+
+    <textarea id="textInput" rows="12" placeholder="인식된 본문이 여기에 표시됩니다"></textarea>
+
+    <div class="row">
+      <button id="joinBtn">줄바꿈 정리</button>
+      <button id="cancelBtn">취소</button>
+    </div>
+    <button id="saveBtn" class="big primary">저장</button>
+  </main>
+
+  <!-- 3. 설정 -->
+  <main id="settings" class="screen" hidden>
+    <h2>GitHub 설정</h2>
+    <label class="field"><span>Owner (사용자/조직)</span><input id="sOwner" type="text" autocapitalize="off" spellcheck="false"></label>
+    <label class="field"><span>Repository</span><input id="sRepo" type="text" autocapitalize="off" spellcheck="false"></label>
+    <label class="field"><span>Branch</span><input id="sBranch" type="text" autocapitalize="off" spellcheck="false" placeholder="main"></label>
+    <label class="field">
+      <span>Fine-grained 토큰 <small id="tokenState"></small></span>
+      <input id="sToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="바꿀 때만 입력">
+    </label>
+    <p class="hint">토큰은 이 기기의 브라우저(localStorage)에만 저장됩니다. 해당 저장소 한 곳에 <b>Contents: Read and write</b> 권한만 주세요.</p>
+    <div class="row">
+      <button id="testBtn">연결 테스트</button>
+      <button id="clearTokenBtn">토큰 삭제</button>
+    </div>
+    <button id="saveSettingsBtn" class="big primary">설정 저장</button>
+    <button id="backBtn" class="big">돌아가기</button>
+    <p class="version">v<span id="appVersion"></span></p>
+  </main>
+
+  <!-- OCR 진행 -->
+  <div id="progress" class="overlay" hidden>
+    <div class="progress-box">
+      <p id="progressLabel">준비 중</p>
+      <div class="bar"><div id="progressBar"></div></div>
+    </div>
+  </div>
+
+  <!-- 유사 제목 확인 -->
+  <div id="modal" class="overlay" hidden>
+    <div class="modal-box">
+      <p id="modalText"></p>
+      <div id="modalButtons" class="modal-buttons"></div>
+    </div>
+  </div>
+
+  <!-- 사진 확대 -->
+  <div id="zoom" class="overlay zoom" hidden><img id="zoomImg" alt=""></div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

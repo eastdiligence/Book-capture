@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>독서노트 테스트</title>
+<style>body{font:14px/1.5 system-ui,sans-serif;padding:16px;background:#fff;color:#222}.ok{color:#1a7f37}.fail{color:#c62828;white-space:pre-wrap}</style>
+</head>
+<body>
+<h1>로직 테스트</h1>
+<p id="summary">실행 중…</p>
+<ul id="out"></ul>
+<script type="module">
+import * as N from './js/note.js';
+import { detectPage } from './js/ocr/pagenum.js';
+import { linesToText } from './js/ocr/layout.js';
+
+const results = [];
+function test(name, fn) {
+  try { fn(); results.push([name, null]); } catch (e) { results.push([name, e.message]); }
+}
+function eq(a, b) {
+  if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`기대: ${JSON.stringify(b)}\n실제: ${JSON.stringify(a)}`);
+}
+
+test('파일명 정리', () => {
+  eq(N.sanitizeFileName(' 코스모스: 가능한 세계들? '), '코스모스 가능한 세계들');
+  eq(N.bookPath('A/B|C#1'), 'books/ABC1.md');
+});
+
+test('새 파일: 프론트매터 + 콜아웃', () => {
+  const r = N.appendQuote(null, '데미안', 123, '새는 알에서 나오려고\n투쟁한다.');
+  eq(r.blockId, 'p123-1');
+  eq(r.content, `---\ntype: book-note\ntitle: 데미안\n---\n\n> [!quote] 데미안 · p.123\n> 새는 알에서 나오려고\n> 투쟁한다.\n^p123-1\n`);
+});
+
+test('기존 파일: 같은 페이지 번호 증가, 빈 줄 구분', () => {
+  const a = N.appendQuote(null, '데미안', 123, '첫째').content;
+  const b = N.appendQuote(a, '데미안', 123, '둘째');
+  eq(b.blockId, 'p123-2');
+  eq(b.content.endsWith('^p123-1\n\n> [!quote] 데미안 · p.123\n> 둘째\n^p123-2\n'), true);
+  eq(N.appendQuote(b.content, '데미안', 12, 'x').blockId, 'p12-1'); // p12는 p123과 구분
+});
+
+test('페이지 없음 → q순번', () => {
+  const a = N.appendQuote(null, '책', null, '하나');
+  eq(a.blockId, 'q1');
+  eq(a.content.includes('> [!quote] 책\n'), true);
+  eq(N.appendQuote(a.content, '책', null, '둘').blockId, 'q2');
+});
+
+test('본문 속 빈 줄은 > 로 유지', () => {
+  eq(N.buildCallout('책', 1, '가\n\n나', 'p1-1'), '> [!quote] 책 · p.1\n> 가\n>\n> 나\n^p1-1\n');
+});
+
+test('YAML 특수문자 제목은 따옴표', () => {
+  eq(N.frontmatter('사피엔스: 유인원에서').includes('title: "사피엔스: 유인원에서"'), true);
+});
+
+test('줄바꿈 정리', () => {
+  eq(N.joinLines('첫 줄이\n이어지는 문장.\n\n둘째 문단\n끝.'), '첫 줄이 이어지는 문장.\n\n둘째 문단 끝.');
+  eq(N.joinLines('an exam-\nple of  it'), 'an example of it');
+});
+
+test('유사 제목', () => {
+  eq(N.findSimilarTitle('사피엔스', ['사피엔스']), null);
+  eq(N.findSimilarTitle('총 균 쇠', ['총균쇠', '데미안']), '총균쇠');
+  eq(N.findSimilarTitle('새 책', ['총균쇠']), null);
+});
+
+test('UTF-8 base64 왕복', () => {
+  const s = '한글 😀 テスト\n> [!quote]';
+  eq(N.base64ToUtf8(N.utf8ToBase64(s)), s);
+  eq(N.utf8ToBase64('가'), '6rCA');
+});
+
+test('커밋 메시지', () => {
+  eq(N.commitMessage('데미안', 123), '독서노트: 데미안 p.123');
+});
+
+test('페이지 번호 인식: 하단 숫자', () => {
+  const lines = [
+    { text: '본문 첫 줄 12개의 사과', bbox: { y0: 100, y1: 130 } },
+    { text: '- 145 -', bbox: { y0: 930, y1: 960 } },
+  ];
+  eq(detectPage(lines, 1000), { page: 145, removeLine: '- 145 -' });
+});
+
+test('페이지 번호 인식: 상단 머리글', () => {
+  const lines = [
+    { text: '146 제2장 문명의 시작', bbox: { y0: 20, y1: 50 } },
+    { text: '본문', bbox: { y0: 200, y1: 230 } },
+  ];
+  eq(detectPage(lines, 1000), { page: 146, removeLine: null });
+});
+
+test('페이지 번호 없음', () => {
+  eq(detectPage([{ text: '1990년에 그는', bbox: { y0: 500, y1: 530 } }], 1000), { page: null, removeLine: null });
+});
+
+test('줄 좌표 → 문단 재구성 (간격/들여쓰기)', () => {
+  const L = (text, x0, y0) => ({ text, bbox: { x0, y0, x1: 900, y1: y0 + 40 } });
+  const lines = [L('첫 문단 첫 줄', 100, 100), L('첫 문단 둘째 줄', 100, 170), L('셋째 줄', 100, 240),
+    L('들여쓴 새 문단', 150, 310), L('이어지는 줄', 100, 380), L('간격 뒤 문단', 100, 520)];
+  eq(linesToText(lines), '첫 문단 첫 줄\n첫 문단 둘째 줄\n셋째 줄\n\n들여쓴 새 문단\n이어지는 줄\n\n간격 뒤 문단');
+});
+
+const out = document.getElementById('out');
+for (const [name, err] of results) {
+  const li = document.createElement('li');
+  li.className = err ? 'fail' : 'ok';
+  li.textContent = err ? `✗ ${name}\n${err}` : `✓ ${name}`;
+  out.append(li);
+}
+const failed = results.filter((r) => r[1]).length;
+document.getElementById('summary').textContent = `${results.length - failed}/${results.length} 통과`;
+</script>
+</body>
+</html>

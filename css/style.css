@@ -1,0 +1,137 @@
+:root {
+  --bg: #f6f3ec;
+  --surface: #fffdf8;
+  --text: #22201c;
+  --muted: #7a746a;
+  --line: #ddd6c8;
+  --accent: #2f4a3a;
+  --accent-text: #fff;
+  --warn: #b5541c;
+  --radius: 12px;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171816;
+    --surface: #22241f;
+    --text: #ebe8e1;
+    --muted: #9c978c;
+    --line: #3a3d36;
+    --accent: #7fae8f;
+    --accent-text: #0f1a13;
+    --warn: #e39263;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+[hidden] { display: none !important; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; gap: 8px;
+  padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  background: var(--accent); color: var(--accent-text);
+}
+.topbar h1 { font-size: 18px; margin: 0; flex: 1; }
+.icon-btn { background: none; border: 0; color: inherit; font-size: 22px; padding: 4px 8px; }
+.pending {
+  background: var(--warn); color: #fff; border: 0; border-radius: 999px;
+  padding: 4px 12px; font-size: 14px;
+}
+
+.screen { padding: 16px; max-width: 640px; margin: 0 auto; }
+h2 { font-size: 18px; margin: 4px 0 16px; }
+
+.field { display: block; margin-bottom: 14px; }
+.field > span { display: block; font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+input[type=text], input[type=password], textarea {
+  width: 100%;
+  font: inherit; font-size: 16px; /* iOS 확대 방지 */
+  color: var(--text); background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px;
+}
+textarea { resize: vertical; min-height: 40vh; line-height: 1.6; }
+input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+button {
+  font: inherit; color: var(--text); background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 14px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+button:active { transform: scale(0.98); }
+button:disabled { opacity: .5; }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+button.big { display: block; width: 100%; padding: 16px; font-size: 17px; font-weight: 600; margin-top: 10px; }
+
+.photo-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.photo-buttons .big { margin: 0; padding: 28px 10px; }
+
+.row { display: flex; gap: 10px; margin-top: 10px; }
+.row > button { flex: 1; }
+
+.hint { color: var(--muted); font-size: 14px; }
+.version { color: var(--muted); font-size: 12px; text-align: center; margin-top: 24px; }
+
+/* 자동완성 */
+.autocomplete { position: relative; }
+.suggest {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 4;
+  list-style: none; margin: 0; padding: 4px 0;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(0,0,0,.12);
+  max-height: 50vh; overflow-y: auto;
+}
+.suggest li { padding: 12px 14px; }
+.suggest li:active { background: var(--line); }
+
+/* 수정 화면 */
+.photo { margin: 0 0 12px; }
+.photo img {
+  display: block; width: 100%; max-height: 38vh; object-fit: contain;
+  background: #000; border-radius: var(--radius);
+}
+.photo figcaption { font-size: 12px; color: var(--muted); text-align: center; margin-top: 4px; }
+.edit-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.book-name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-field { display: flex; align-items: center; gap: 4px; }
+.page-field input { width: 84px; text-align: center; }
+.chip {
+  font-size: 14px; padding: 6px 12px; border-radius: 999px; margin-bottom: 8px;
+  border-color: var(--accent); color: var(--accent);
+}
+
+/* 오버레이 */
+.overlay {
+  position: fixed; inset: 0; z-index: 20;
+  background: rgba(0,0,0,.55);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.progress-box, .modal-box {
+  background: var(--surface); border-radius: 16px; padding: 20px;
+  width: 100%; max-width: 360px;
+}
+.progress-box p { margin: 0 0 12px; text-align: center; }
+.bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.bar > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.modal-box p { white-space: pre-line; margin: 0 0 16px; }
+.modal-buttons { display: flex; flex-direction: column; gap: 8px; }
+.zoom { padding: 0; background: #000; overflow: auto; align-items: flex-start; }
+.zoom img { width: 200%; max-width: none; }
+
+.toast {
+  position: fixed; left: 16px; right: 16px; z-index: 30;
+  bottom: calc(env(safe-area-inset-bottom) + 20px);
+  background: var(--text); color: var(--bg);
+  padding: 12px 16px; border-radius: var(--radius); text-align: center;
+  font-size: 15px; box-shadow: 0 6px 20px rgba(0,0,0,.25);
+}
