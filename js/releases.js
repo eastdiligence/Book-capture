@@ -2,6 +2,15 @@
 // (CHANGELOG.md에도 같은 내용을 반영)
 export const RELEASES = [
   {
+    version: '1.3.0',
+    date: '2026-10-03',
+    notes: [
+      'OCR 프록시(Cloudflare Worker)에 비밀키 인증 추가 — Worker 주소만 알면 누구나 호출할 수 있던 문제 수정',
+      '설정 화면에 "OCR 프록시 비밀키" 입력란 추가 (Worker의 PROXY_SECRET과 동일한 값 입력)',
+      'Vision API 오류 메시지에 구체적인 원인이 표시되도록 개선',
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-10-03',
     notes: [

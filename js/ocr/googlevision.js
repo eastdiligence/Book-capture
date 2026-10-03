@@ -44,14 +44,14 @@ function extractLines(fullTextAnnotation) {
 }
 
 async function callProxy(base64) {
-  const { ocrProxyUrl } = settings.get();
+  const { ocrProxyUrl, ocrProxySecret } = settings.get();
   if (!ocrProxyUrl) throw new Error('설정에서 OCR 프록시 주소를 입력하세요.');
   const res = await fetch(ocrProxyUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': ocrProxySecret ?? '' },
     body: JSON.stringify({ image: base64 }),
   });
-  if (!res.ok) throw new Error(`OCR 프록시 오류 (${res.status})`);
+  if (!res.ok) throw new Error((await res.text().catch(() => '')) || `OCR 프록시 오류 (${res.status})`);
   return res.json();
 }
 

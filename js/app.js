@@ -4,7 +4,7 @@ import * as store from './store.js';
 import { joinLines, findSimilarTitle, normalizeTitle, sanitizeFileName, findDuplicateQuote } from './note.js';
 import { RELEASES } from './releases.js';
 
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = '1.3.0';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -328,12 +328,13 @@ window.addEventListener('online', () => {
 // ---------- 설정 ----------
 const sf = {
   owner: $('sOwner'), repo: $('sRepo'), branch: $('sBranch'), token: $('sToken'),
-  ocrEngine: $('sOcrEngine'), ocrProxyUrl: $('sOcrProxyUrl'),
+  ocrEngine: $('sOcrEngine'), ocrProxyUrl: $('sOcrProxyUrl'), ocrProxySecret: $('sOcrProxySecret'),
 };
 
 function updateOcrProxyVisibility() {
   const needsProxy = sf.ocrEngine.value !== 'tesseract';
   $('sOcrProxyField').hidden = !needsProxy;
+  $('sOcrSecretField').hidden = !needsProxy;
   $('sOcrProxyHint').hidden = !needsProxy;
 }
 sf.ocrEngine.onchange = updateOcrProxyVisibility;
@@ -346,8 +347,10 @@ function openSettings() {
   sf.token.value = '';
   sf.ocrEngine.value = c.ocrEngine;
   sf.ocrProxyUrl.value = c.ocrProxyUrl;
+  sf.ocrProxySecret.value = '';
   updateOcrProxyVisibility();
   $('tokenState').textContent = c.token ? '(저장됨)' : '(없음)';
+  $('ocrSecretState').textContent = c.ocrProxySecret ? '(저장됨)' : '(없음)';
   show(el.settings);
 }
 
@@ -360,6 +363,7 @@ function readSettingsForm() {
     token: sf.token.value.trim() || c.token,
     ocrEngine: sf.ocrEngine.value,
     ocrProxyUrl: sf.ocrProxyUrl.value.trim(),
+    ocrProxySecret: sf.ocrProxySecret.value.trim() || c.ocrProxySecret,
   };
 }
 

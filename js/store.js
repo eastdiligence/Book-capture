@@ -25,7 +25,7 @@ function write(key, value) {
 }
 
 export const settings = {
-  get: () => ({ owner: '', repo: '', branch: 'main', token: '', ocrEngine: 'tesseract', ocrProxyUrl: '', ...read(K.settings, {}) }),
+  get: () => ({ owner: '', repo: '', branch: 'main', token: '', ocrEngine: 'tesseract', ocrProxyUrl: '', ocrProxySecret: '', ...read(K.settings, {}) }),
   set: (s) => write(K.settings, s),
 };
 

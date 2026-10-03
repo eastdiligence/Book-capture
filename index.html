@@ -95,7 +95,11 @@
       <span>OCR 프록시 주소</span>
       <input id="sOcrProxyUrl" type="url" autocapitalize="off" spellcheck="false" placeholder="https://your-worker.workers.dev">
     </label>
-    <p id="sOcrProxyHint" class="hint" hidden>Google Vision API 키를 숨길 Cloudflare Worker 등 프록시의 주소입니다. README.md 참고.</p>
+    <label id="sOcrSecretField" class="field" hidden>
+      <span>OCR 프록시 비밀키 <small id="ocrSecretState"></small></span>
+      <input id="sOcrProxySecret" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="바꿀 때만 입력">
+    </label>
+    <p id="sOcrProxyHint" class="hint" hidden>Google Vision API 키를 숨길 Cloudflare Worker 프록시의 주소와, Worker의 PROXY_SECRET과 동일한 비밀키입니다. README.md 참고.</p>
     <button id="saveSettingsBtn" class="big primary">설정 저장</button>
     <button id="backBtn" class="big">돌아가기</button>
     <p class="version">v<span id="appVersion"></span> · <button id="releaseNotesBtn" class="link-btn" type="button">릴리즈 노트</button></p>

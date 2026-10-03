@@ -133,11 +133,13 @@ title: 총균쇠
 2. **Cloudflare Worker 배포** (무료, 가입만 하면 됨)
    - [Cloudflare 대시보드](https://dash.cloudflare.com/) → Workers & Pages → **Create → Create Worker** → 이름 정하고 생성
    - 편집기에서 기본 코드를 지우고 이 저장소의 [`cloudflare-worker/worker.js`](cloudflare-worker/worker.js) 내용을 붙여넣기 → **Deploy**
-   - Worker 페이지 → **Settings → Variables and Secrets → Add** → 이름 `GOOGLE_VISION_API_KEY`, 값은 1번에서 받은 키, 타입은 **Secret** → 저장
+   - Worker 페이지 → **Settings → Variables and Secrets → Add** → 아래 두 개를 **Secret** 타입으로 등록
+     - `GOOGLE_VISION_API_KEY`: 1번에서 받은 키
+     - `PROXY_SECRET`: 아무 값이나 직접 정한 비밀키 (예: 긴 임의 문자열). **이게 없으면 Worker 주소를 아는 누구나 호출할 수 있어 과금 위험이 있으니 반드시 설정할 것.**
    - Worker 주소(예: `https://xxx.사용자명.workers.dev`)를 복사해 둡니다.
 
 3. **앱 설정**
-   - 앱 ⚙︎ 설정 화면 → OCR 엔진: **Google Vision** 선택 → OCR 프록시 주소에 2번의 Worker 주소 입력 → 설정 저장
+   - 앱 ⚙︎ 설정 화면 → OCR 엔진: **Google Vision** 선택 → OCR 프록시 주소에 2번의 Worker 주소, OCR 프록시 비밀키에 `PROXY_SECRET`과 동일한 값 입력 → 설정 저장
 
 새 엔진을 직접 추가하고 싶다면 `js/ocr/index.js`의 인터페이스(`recognize(canvas, { onProgress }) → { text, page }`)만 맞춰 파일을 만들고 `ENGINES`에 등록하면 됩니다(`js/ocr/googlevision.js` 참고).
 
@@ -145,4 +147,5 @@ title: 총균쇠
 
 - 토큰은 `localStorage`에만 저장되고, 화면(비밀번호 칸, “저장됨” 표시만)·콘솔·에러 메시지에 출력되지 않습니다.
 - 토큰 권한은 볼트 저장소 하나의 Contents 읽기/쓰기로 제한하세요. 폰을 잃어버리면 GitHub에서 토큰을 **Revoke** 하면 됩니다.
+- OCR 프록시 비밀키(`PROXY_SECRET`)도 토큰과 같은 방식(`localStorage`만, 화면·콘솔 비노출)으로 다룹니다. Cloudflare Worker 쪽 값을 바꾸면 앱 설정에서도 똑같이 바꿔야 합니다.
 - 사진은 화면 표시와 OCR에만 메모리에서 쓰고, 어디에도 저장·전송하지 않습니다.
