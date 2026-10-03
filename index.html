@@ -30,6 +30,7 @@
         <ul id="titleSuggest" class="suggest" hidden></ul>
       </div>
     </label>
+    <p id="lastSaved" class="hint" hidden></p>
 
     <div class="photo-buttons">
       <button id="cameraBtn" class="big primary">📷 촬영</button>
@@ -81,6 +82,20 @@
       <button id="testBtn">연결 테스트</button>
       <button id="clearTokenBtn">토큰 삭제</button>
     </div>
+
+    <h2>OCR 엔진</h2>
+    <label class="field">
+      <span>엔진</span>
+      <select id="sOcrEngine">
+        <option value="tesseract">Tesseract (오프라인, 무료)</option>
+        <option value="googlevision">Google Vision (고품질, 프록시 필요)</option>
+      </select>
+    </label>
+    <label id="sOcrProxyField" class="field" hidden>
+      <span>OCR 프록시 주소</span>
+      <input id="sOcrProxyUrl" type="url" autocapitalize="off" spellcheck="false" placeholder="https://your-worker.workers.dev">
+    </label>
+    <p id="sOcrProxyHint" class="hint" hidden>Google Vision API 키를 숨길 Cloudflare Worker 등 프록시의 주소입니다. README.md 참고.</p>
     <button id="saveSettingsBtn" class="big primary">설정 저장</button>
     <button id="backBtn" class="big">돌아가기</button>
     <p class="version">v<span id="appVersion"></span></p>

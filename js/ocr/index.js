@@ -1,15 +1,16 @@
 // OCR 인터페이스.
 // 엔진은 `recognize(canvas, { onProgress }) => Promise<{ text: string, page: number|null }>` 만 구현하면 된다.
-// 나중에 Claude API 이미지 인식으로 바꿀 때는 ./claude.js 같은 엔진을 추가하고 ENGINES에 등록하면 끝.
+// 새 엔진을 추가하려면 ./엔진이름.js 를 만들고 ENGINES에 등록하면 끝. 어느 엔진을 쓸지는 설정(store.settings.ocrEngine)에서 고른다.
 import { preprocess } from './preprocess.js';
 import * as tesseract from './tesseract.js';
+import * as googlevision from './googlevision.js';
+import { settings } from '../store.js';
 
-const ENGINES = { tesseract };
-let current = 'tesseract';
+const ENGINES = { tesseract, googlevision };
 
-export function setEngine(name) {
-  if (!ENGINES[name]) throw new Error(`알 수 없는 OCR 엔진: ${name}`);
-  current = name;
+function activeEngine() {
+  const { ocrEngine } = settings.get();
+  return ENGINES[ocrEngine] ? ENGINES[ocrEngine] : ENGINES.tesseract;
 }
 
 /**
@@ -20,11 +21,11 @@ export function setEngine(name) {
 export async function recognize(file, opts = {}) {
   opts.onProgress?.('사진 보정 중', 0);
   const canvas = await preprocess(file);
-  const result = await ENGINES[current].recognize(canvas, opts);
+  const result = await activeEngine().recognize(canvas, opts);
   return { text: (result.text ?? '').trim(), page: result.page ?? null };
 }
 
 /** 엔진 준비(언어 데이터 다운로드 등)를 미리 시작해 첫 OCR 대기 시간을 줄임 */
 export function warmUp() {
-  ENGINES[current].warmUp?.().catch(() => {});
+  activeEngine().warmUp?.().catch(() => {});
 }

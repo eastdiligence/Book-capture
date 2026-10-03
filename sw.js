@@ -1,6 +1,6 @@
 // 앱 셸 캐시. 셸은 네트워크 우선이라 온라인이면 새 파일이 바로 반영된다.
 // 파일을 추가/삭제했을 때만 SHELL_FILES와 VERSION을 고치면 된다.
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.0';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = 'runtime-cdn'; // tesseract.js 등 버전 고정된 CDN 파일
 
@@ -15,6 +15,7 @@ const SHELL_FILES = [
   './js/ocr/index.js',
   './js/ocr/preprocess.js',
   './js/ocr/tesseract.js',
+  './js/ocr/googlevision.js',
   './js/ocr/pagenum.js',
   './js/ocr/layout.js',
   './manifest.webmanifest',

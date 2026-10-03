@@ -1,7 +1,7 @@
 import * as ocr from './ocr/index.js';
 import * as gh from './github.js';
 import * as store from './store.js';
-import { joinLines, findSimilarTitle, normalizeTitle, sanitizeFileName } from './note.js';
+import { joinLines, findSimilarTitle, normalizeTitle, sanitizeFileName, findDuplicateQuote } from './note.js';
 
 export const APP_VERSION = '1.0.0';
 
@@ -16,6 +16,7 @@ const el = {
   progress: $('progress'), progressLabel: $('progressLabel'), progressBar: $('progressBar'),
   modal: $('modal'), modalText: $('modalText'), modalButtons: $('modalButtons'),
   zoom: $('zoom'), zoomImg: $('zoomImg'), toast: $('toast'), configHint: $('configHint'),
+  lastSaved: $('lastSaved'),
 };
 
 let photoUrl = null;
@@ -86,6 +87,7 @@ function renderSuggest() {
         el.titleInput.value = t;
         store.lastTitle.set(t);
         el.titleSuggest.hidden = true;
+        updateLastSavedHint();
       });
       return li;
     })
@@ -93,7 +95,15 @@ function renderSuggest() {
   el.titleSuggest.hidden = false;
 }
 
+function updateLastSavedHint() {
+  const title = el.titleInput.value.trim();
+  const page = title ? store.lastPage.get(title) : null;
+  el.lastSaved.hidden = !page;
+  if (page) el.lastSaved.textContent = `마지막 저장: ${title} · p.${page}`;
+}
+
 el.titleInput.addEventListener('input', renderSuggest);
+el.titleInput.addEventListener('input', updateLastSavedHint);
 el.titleInput.addEventListener('focus', renderSuggest);
 el.titleInput.addEventListener('blur', () => {
   setTimeout(() => (el.titleSuggest.hidden = true), 150);
@@ -227,11 +237,29 @@ $('saveBtn').onclick = async () => {
     if (choice === 'existing') title = similar;
   }
 
+  if (gh.isConfigured(cfg()) && navigator.onLine) {
+    try {
+      const content = await gh.fetchBookContent(cfg(), title);
+      const dup = findDuplicateQuote(content, page, text);
+      if (dup) {
+        const preview = dup.length > 60 ? `${dup.slice(0, 60)}…` : dup;
+        const proceed = await ask(`${page ? `p.${page}에` : '이미'} 비슷한 내용이 저장되어 있어요.\n\n"${preview}"\n\n그래도 저장할까요?`, [
+          { label: '취소', value: false },
+          { label: '그래도 저장', value: true, primary: true },
+        ]);
+        if (!proceed) return;
+      }
+    } catch {
+      // 중복 확인 실패는 저장을 막지 않음 (네트워크 문제 등)
+    }
+  }
+
   store.queue.push({ title, page, text });
   store.titles.add(title);
   store.lastPage.set(title, page);
   store.lastTitle.set(title);
   el.titleInput.value = title;
+  updateLastSavedHint();
   leaveEditor();
   updatePending();
 
@@ -297,7 +325,17 @@ window.addEventListener('online', () => {
 });
 
 // ---------- 설정 ----------
-const sf = { owner: $('sOwner'), repo: $('sRepo'), branch: $('sBranch'), token: $('sToken') };
+const sf = {
+  owner: $('sOwner'), repo: $('sRepo'), branch: $('sBranch'), token: $('sToken'),
+  ocrEngine: $('sOcrEngine'), ocrProxyUrl: $('sOcrProxyUrl'),
+};
+
+function updateOcrProxyVisibility() {
+  const needsProxy = sf.ocrEngine.value !== 'tesseract';
+  $('sOcrProxyField').hidden = !needsProxy;
+  $('sOcrProxyHint').hidden = !needsProxy;
+}
+sf.ocrEngine.onchange = updateOcrProxyVisibility;
 
 function openSettings() {
   const c = cfg();
@@ -305,6 +343,9 @@ function openSettings() {
   sf.repo.value = c.repo;
   sf.branch.value = c.branch;
   sf.token.value = '';
+  sf.ocrEngine.value = c.ocrEngine;
+  sf.ocrProxyUrl.value = c.ocrProxyUrl;
+  updateOcrProxyVisibility();
   $('tokenState').textContent = c.token ? '(저장됨)' : '(없음)';
   show(el.settings);
 }
@@ -316,6 +357,8 @@ function readSettingsForm() {
     repo: sf.repo.value.trim(),
     branch: sf.branch.value.trim() || 'main',
     token: sf.token.value.trim() || c.token,
+    ocrEngine: sf.ocrEngine.value,
+    ocrProxyUrl: sf.ocrProxyUrl.value.trim(),
   };
 }
 
@@ -354,6 +397,7 @@ $('testBtn').onclick = async () => {
 // ---------- 시작 ----------
 $('appVersion').textContent = APP_VERSION;
 el.titleInput.value = store.lastTitle.get();
+updateLastSavedHint();
 updateConfigHint();
 updatePending();
 refreshTitles().then(() => flushQueue());

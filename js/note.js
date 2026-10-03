@@ -51,7 +51,7 @@ export function buildCallout(title, page, text, blockId) {
     .trim()
     .split('\n')
     .map((line) => (line.trim() ? `> ${line.trimEnd()}` : '>'));
-  return [header, ...body, `^${blockId}`].join('\n') + '\n';
+  return [header, ...body, `> ^${blockId}`].join('\n') + '\n';
 }
 
 /** 기존 내용(없으면 null) 끝에 인용을 추가한 새 파일 내용 */
@@ -85,6 +85,62 @@ export function joinLines(text) {
     )
     .filter(Boolean)
     .join('\n\n');
+}
+
+/** 파일 내용에서 특정 페이지(page가 null이면 페이지 없는 인용)의 기존 본문 목록 */
+export function existingQuotesForPage(content, page) {
+  if (!content) return [];
+  const suffix = page ? ` · p.${page}` : '';
+  return content
+    .split(/\n(?=> \[!quote\])/)
+    .map((block) => block.split('\n'))
+    .filter(([header]) =>
+      header?.startsWith('> [!quote]') && (page ? header.endsWith(suffix) : !header.includes(' · p.'))
+    )
+    .map(([, ...rest]) => {
+      const body = [];
+      for (const line of rest) {
+        if (/^> \^/.test(line)) break; // 블록 ID 줄에서 멈춤
+        if (line === '>') body.push('');
+        else if (line.startsWith('> ')) body.push(line.slice(2));
+      }
+      return body.join('\n').trim();
+    });
+}
+
+function bigrams(s) {
+  const out = [];
+  for (let i = 0; i < s.length - 1; i++) out.push(s.slice(i, i + 2));
+  return out;
+}
+
+/** 공백을 무시한 2-gram 기준 유사도(0~1). OCR 결과가 조금씩 달라도 같은 인용인지 비교하는 용도 */
+export function textSimilarity(a, b) {
+  const na = a.replace(/\s+/g, '');
+  const nb = b.replace(/\s+/g, '');
+  if (!na || !nb) return na === nb ? 1 : 0;
+  const ba = bigrams(na);
+  const bb = bigrams(nb);
+  if (!ba.length || !bb.length) return na === nb ? 1 : 0;
+  const counts = new Map();
+  for (const g of ba) counts.set(g, (counts.get(g) ?? 0) + 1);
+  let overlap = 0;
+  for (const g of bb) {
+    const c = counts.get(g) ?? 0;
+    if (c > 0) {
+      overlap++;
+      counts.set(g, c - 1);
+    }
+  }
+  return (2 * overlap) / (ba.length + bb.length);
+}
+
+/** 같은 페이지에 이미 거의 같은 인용이 저장돼 있으면 그 본문을 반환 (없으면 null) */
+export function findDuplicateQuote(content, page, text, threshold = 0.85) {
+  for (const q of existingQuotesForPage(content, page)) {
+    if (textSimilarity(q, text) >= threshold) return q;
+  }
+  return null;
 }
 
 export function commitMessage(title, page) {

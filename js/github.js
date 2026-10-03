@@ -82,6 +82,11 @@ async function getFile(cfg, path) {
   }
 }
 
+/** 책 파일의 현재 내용 (없으면 null). 중복 저장 경고용으로 저장 전에 미리 확인할 때 쓴다 */
+export async function fetchBookContent(cfg, title) {
+  return (await getFile(cfg, bookPath(title))).content;
+}
+
 /** 인용 하나를 책 파일 끝에 추가해 커밋. 충돌 시 재조회 후 1회 재시도 */
 export async function commitQuote(cfg, { title, page, text }) {
   const path = bookPath(title);

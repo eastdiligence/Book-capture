@@ -104,15 +104,15 @@ title: 총균쇠
 > 인류 역사의 흐름이 대륙마다 다르게 전개된 것은 ...
 >
 > 이것이 이 책의 핵심 주장이다.
-^p145-1
+> ^p145-1
 
 > [!quote] 총균쇠 · p.145
 > 같은 페이지 두 번째 인용
-^p145-2
+> ^p145-2
 
 > [!quote] 총균쇠
 > 페이지 번호를 비워 둔 인용
-^q1
+> ^q1
 ```
 
 - 파일명에서 `\ / : * ? " < > | # ^ [ ]`는 제거됩니다.
@@ -120,19 +120,26 @@ title: 총균쇠
 - 앱은 `books/*.md` 외의 경로에는 쓰지 않도록 코드에서 막혀 있습니다(리뷰 등 다른 파일은 건드리지 않음). 기존 내용은 수정하지 않고 끝에 추가만 합니다.
 - 제목 비교 시 공백·대소문자·일부 문장부호를 무시해, `총 균 쇠`처럼 표기만 다른 제목이면 기존 제목에 저장할지 묻습니다.
 
-## OCR 엔진 교체 (예: Claude API)
+## OCR 엔진을 Google Cloud Vision으로 바꾸기 (더 정확함, 매달 1,000건 무료)
 
-`js/ocr/index.js`의 인터페이스만 맞추면 됩니다.
+실제 책 사진에서는 Tesseract(완전 오프라인)보다 Google Cloud Vision이 한글 인식률이 훨씬 높습니다. 단, API 키를 숨길 작은 중계 서버(프록시)가 하나 필요합니다 — 앱이 키를 직접 들고 있으면 브라우저에서 누구나 꺼내 쓸 수 있기 때문입니다. `cloudflare-worker/worker.js`가 그 프록시 코드입니다.
 
-```js
-// js/ocr/claude.js
-export async function recognize(canvas, { onProgress }) {
-  // canvas.toDataURL('image/jpeg') 등을 보내고
-  return { text: '...', page: 123 }; // page를 모르면 null
-}
-```
+1. **Google Cloud Vision API 키 발급**
+   - [Google Cloud Console](https://console.cloud.google.com/)에서 프로젝트 생성 → **Cloud Vision API** 사용 설정
+   - API 및 서비스 → 사용자 인증 정보 → **API 키 만들기**
+   - 만든 키 → **키 제한** → API 제한사항을 **Cloud Vision API만** 허용하도록 반드시 제한 (유출돼도 피해 범위를 줄이기 위함)
+   - 매달 1,000건까지 무료, 개인 독서노트 용도로는 충분합니다.
 
-`index.js`의 `ENGINES`에 등록하고 `setEngine('claude')`를 부르면 됩니다. 단, 브라우저에서 API 키를 직접 쓰면 키가 노출되므로 그때는 키를 숨겨줄 작은 프록시(예: Cloudflare Worker)가 필요합니다.
+2. **Cloudflare Worker 배포** (무료, 가입만 하면 됨)
+   - [Cloudflare 대시보드](https://dash.cloudflare.com/) → Workers & Pages → **Create → Create Worker** → 이름 정하고 생성
+   - 편집기에서 기본 코드를 지우고 이 저장소의 [`cloudflare-worker/worker.js`](cloudflare-worker/worker.js) 내용을 붙여넣기 → **Deploy**
+   - Worker 페이지 → **Settings → Variables and Secrets → Add** → 이름 `GOOGLE_VISION_API_KEY`, 값은 1번에서 받은 키, 타입은 **Secret** → 저장
+   - Worker 주소(예: `https://xxx.사용자명.workers.dev`)를 복사해 둡니다.
+
+3. **앱 설정**
+   - 앱 ⚙︎ 설정 화면 → OCR 엔진: **Google Vision** 선택 → OCR 프록시 주소에 2번의 Worker 주소 입력 → 설정 저장
+
+새 엔진을 직접 추가하고 싶다면 `js/ocr/index.js`의 인터페이스(`recognize(canvas, { onProgress }) → { text, page }`)만 맞춰 파일을 만들고 `ENGINES`에 등록하면 됩니다(`js/ocr/googlevision.js` 참고).
 
 ## 보안 메모
 

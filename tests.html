@@ -28,14 +28,14 @@ test('파일명 정리', () => {
 test('새 파일: 프론트매터 + 콜아웃', () => {
   const r = N.appendQuote(null, '데미안', 123, '새는 알에서 나오려고\n투쟁한다.');
   eq(r.blockId, 'p123-1');
-  eq(r.content, `---\ntype: book-note\ntitle: 데미안\n---\n\n> [!quote] 데미안 · p.123\n> 새는 알에서 나오려고\n> 투쟁한다.\n^p123-1\n`);
+  eq(r.content, `---\ntype: book-note\ntitle: 데미안\n---\n\n> [!quote] 데미안 · p.123\n> 새는 알에서 나오려고\n> 투쟁한다.\n> ^p123-1\n`);
 });
 
 test('기존 파일: 같은 페이지 번호 증가, 빈 줄 구분', () => {
   const a = N.appendQuote(null, '데미안', 123, '첫째').content;
   const b = N.appendQuote(a, '데미안', 123, '둘째');
   eq(b.blockId, 'p123-2');
-  eq(b.content.endsWith('^p123-1\n\n> [!quote] 데미안 · p.123\n> 둘째\n^p123-2\n'), true);
+  eq(b.content.endsWith('> ^p123-1\n\n> [!quote] 데미안 · p.123\n> 둘째\n> ^p123-2\n'), true);
   eq(N.appendQuote(b.content, '데미안', 12, 'x').blockId, 'p12-1'); // p12는 p123과 구분
 });
 
@@ -47,7 +47,7 @@ test('페이지 없음 → q순번', () => {
 });
 
 test('본문 속 빈 줄은 > 로 유지', () => {
-  eq(N.buildCallout('책', 1, '가\n\n나', 'p1-1'), '> [!quote] 책 · p.1\n> 가\n>\n> 나\n^p1-1\n');
+  eq(N.buildCallout('책', 1, '가\n\n나', 'p1-1'), '> [!quote] 책 · p.1\n> 가\n>\n> 나\n> ^p1-1\n');
 });
 
 test('YAML 특수문자 제목은 따옴표', () => {
@@ -69,6 +69,26 @@ test('UTF-8 base64 왕복', () => {
   const s = '한글 😀 テスト\n> [!quote]';
   eq(N.base64ToUtf8(N.utf8ToBase64(s)), s);
   eq(N.utf8ToBase64('가'), '6rCA');
+});
+
+test('페이지별 기존 인용 추출', () => {
+  const content = N.appendQuote(null, '책', 16, '첫째 문장').content;
+  const a = N.appendQuote(content, '책', 16, '둘째 문장').content;
+  eq(N.existingQuotesForPage(a, 16), ['첫째 문장', '둘째 문장']);
+  eq(N.existingQuotesForPage(a, 17), []);
+});
+
+test('텍스트 유사도', () => {
+  eq(N.textSimilarity('가나다라', '가나다라'), 1);
+  eq(N.textSimilarity('가나다라', '가나 다라'), 1); // 공백 무시
+  eq(N.textSimilarity('완전히 다른 문장', '전혀 상관없는 내용') < 0.5, true);
+});
+
+test('중복 인용 감지', () => {
+  const content = N.appendQuote(null, '책', 16, '별은 하늘 높이 떠 있었다.').content;
+  eq(N.findDuplicateQuote(content, 16, '별은 하늘 높이 떠 있었다.') !== null, true);
+  eq(N.findDuplicateQuote(content, 16, '전혀 다른 두번째 인용문'), null);
+  eq(N.findDuplicateQuote(content, 17, '별은 하늘 높이 떠 있었다.'), null); // 다른 페이지
 });
 
 test('커밋 메시지', () => {
