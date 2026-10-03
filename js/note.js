@@ -10,10 +10,13 @@ export function sanitizeFileName(title) {
     .replace(/[. ]+$/, '');
 }
 
+// vault의 독서/ 폴더에 이미 같은 제목의 노트가 있을 수 있어 접미사로 구분 (파일명 충돌 방지)
+export const FILE_SUFFIX = '_인용';
+
 export function bookPath(title) {
   const name = sanitizeFileName(title);
   if (!name) throw new Error('책 제목이 비어 있거나 쓸 수 없는 문자만 있습니다.');
-  return `books/${name}.md`;
+  return `books/${name}${FILE_SUFFIX}.md`;
 }
 
 /** 공백·대소문자·일부 문장부호를 무시한 비교 키 */
@@ -87,25 +90,30 @@ export function joinLines(text) {
     .join('\n\n');
 }
 
-/** 파일 내용에서 특정 페이지(page가 null이면 페이지 없는 인용)의 기존 본문 목록 */
-export function existingQuotesForPage(content, page) {
+/** 파일 내용에서 모든 인용 추출: [{ page, text }] (page는 숫자, 없으면 null) */
+export function parseQuotes(content) {
   if (!content) return [];
-  const suffix = page ? ` · p.${page}` : '';
   return content
     .split(/\n(?=> \[!quote\])/)
     .map((block) => block.split('\n'))
-    .filter(([header]) =>
-      header?.startsWith('> [!quote]') && (page ? header.endsWith(suffix) : !header.includes(' · p.'))
-    )
-    .map(([, ...rest]) => {
+    .filter(([header]) => header?.startsWith('> [!quote]'))
+    .map(([header, ...rest]) => {
+      const m = header.match(/ · p\.(\d+)$/);
       const body = [];
       for (const line of rest) {
         if (/^> \^/.test(line)) break; // 블록 ID 줄에서 멈춤
         if (line === '>') body.push('');
         else if (line.startsWith('> ')) body.push(line.slice(2));
       }
-      return body.join('\n').trim();
+      return { page: m ? Number(m[1]) : null, text: body.join('\n').trim() };
     });
+}
+
+/** 파일 내용에서 특정 페이지(page가 null이면 페이지 없는 인용)의 기존 본문 목록 */
+export function existingQuotesForPage(content, page) {
+  return parseQuotes(content)
+    .filter((q) => q.page === (page || null))
+    .map((q) => q.text);
 }
 
 function bigrams(s) {

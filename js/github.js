@@ -1,5 +1,5 @@
 // GitHub Contents API 클라이언트. 토큰은 절대 로그/에러 메시지에 넣지 않는다.
-import { bookPath, appendQuote, commitMessage, utf8ToBase64, base64ToUtf8 } from './note.js';
+import { bookPath, appendQuote, commitMessage, utf8ToBase64, base64ToUtf8, FILE_SUFFIX } from './note.js';
 
 const API = 'https://api.github.com';
 
@@ -50,13 +50,13 @@ export async function testConnection(cfg) {
   return { private: repo.private, canPush: repo.permissions?.push ?? null };
 }
 
-/** books/ 폴더의 .md 파일명 → 제목 목록 */
+/** books/ 폴더의 .md 파일명 → 제목 목록 (파일명의 FILE_SUFFIX 접미사는 떼고 돌려줌) */
 export async function listBookTitles(cfg) {
   try {
     const items = await request(cfg, 'GET', '/contents/books', { query: { ref: cfg.branch } });
     return items
       .filter((f) => f.type === 'file' && f.name.endsWith('.md'))
-      .map((f) => f.name.slice(0, -3));
+      .map((f) => f.name.slice(0, -3).replace(new RegExp(`${FILE_SUFFIX}$`), ''));
   } catch (e) {
     if (e.status === 404) return []; // books/ 폴더가 아직 없음
     throw e;

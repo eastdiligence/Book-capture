@@ -1,6 +1,6 @@
 # Book-capture (독서노트 PWA)
 
-책 페이지 사진 → OCR(Tesseract.js, kor+eng) → 사용자가 수정 → GitHub Contents API로 볼트 저장소의 `books/{책제목}.md`에 옵시디언 `[!quote]` 콜아웃으로 커밋하는 iPhone용 PWA. 서버·빌드 없음, GitHub Pages로 배포. UI는 한국어, 모바일 우선.
+책 페이지 사진 → OCR(Tesseract.js, kor+eng) → 사용자가 수정 → GitHub Contents API로 볼트 저장소의 `books/{책제목}_인용.md`에 옵시디언 `[!quote]` 콜아웃으로 커밋하는 iPhone용 PWA. 서버·빌드 없음, GitHub Pages로 배포. UI는 한국어, 모바일 우선.
 
 ## 실행 / 테스트
 - Node 없음. 정적 파일이라 `python -m http.server 8765` 후 http://localhost:8765/ (SW는 localhost/HTTPS에서만 동작).
@@ -8,7 +8,7 @@
 - 배포: `main` 브랜치 root를 GitHub Pages로 서비스. 자세한 절차는 README.md.
 
 ## 구조
-- `js/app.js` UI 흐름·대기열 전송 / `js/note.js` 포맷·블록 ID·줄바꿈 정리·base64 (순수 함수) / `js/github.js` API / `js/store.js` localStorage
+- `js/app.js` UI 흐름·대기열 전송·기록(📚) 화면 / `js/note.js` 포맷·블록 ID·줄바꿈 정리·base64·`parseQuotes`(기록 화면용 전체 인용 파싱) (순수 함수) / `js/github.js` API / `js/store.js` localStorage
 - `js/ocr/index.js` 엔진 인터페이스 `recognize(file) → { text, page }`. 어느 엔진을 쓸지는 설정(`store.settings.ocrEngine`)에서 고름(`tesseract` 기본값 / `googlevision`). 엔진은 `recognize(canvas, {onProgress})`만 구현하면 교체·추가 가능. `preprocess.js`, `pagenum.js`, `layout.js`는 엔진 독립.
 - `js/ocr/googlevision.js` Google Cloud Vision 엔진. API 키를 숨기는 프록시(`cloudflare-worker/worker.js`, 앱 저장소와 별도로 Cloudflare에 배포)를 거침. 프록시 주소는 설정의 `ocrProxyUrl`.
 - `sw.js` 셸은 네트워크 우선(`fetch`에 `cache: 'no-store'` — GitHub Pages의 `Cache-Control: max-age=600` 때문에 이게 없으면 온라인에서도 낡은 파일이 나갈 수 있음), jsdelivr CDN은 캐시 우선. **파일을 추가/삭제하면 `SHELL_FILES`와 `VERSION`을 함께 수정.** (`cloudflare-worker/`는 앱 셸이 아니므로 제외)
@@ -18,6 +18,7 @@
 - 저장 형식은 요청 사양 그대로: 프론트매터(`type: book-note`, `title`) → 빈 줄 → `> [!quote] 제목 · p.N` → `> 본문` → `> ^pN-k` (페이지 없으면 `> ^q순번`, 블록ID도 `>`로 콜아웃 안에 포함— 아니면 `[[책#^p123-1]]` 링크가 콜아웃을 못 찾음). 항상 파일 끝에 추가만 하고 기존 내용은 수정하지 않는다.
 - 블록 ID는 커밋 직전에 GET한 내용으로 계산한다(409/422 시 재조회 후 1회 재시도).
 - 앱은 `books/*.md` 외 경로에 쓰지 않는다(`github.js`의 `assertWritable`). 리뷰 파일은 절대 건드리지 않는다.
+- 파일명은 `{책제목}_인용.md` (접미사는 `js/note.js`의 `FILE_SUFFIX`). vault의 `독서/` 폴더 등에 이미 같은 제목 노트가 있을 수 있어 `[[책제목]]` 링크와 안 겹치게 구분하기 위함. 프론트매터의 `title`과 콜아웃 헤더에는 접미사를 붙이지 않음(파일명만).
 - 토큰은 localStorage에만 저장하고 화면·콘솔·에러 메시지에 노출하지 않는다. 사진은 저장·전송하지 않는다.
 - base64는 반드시 UTF-8(TextEncoder/Decoder) 경유로 처리한다.
 - 앱 저장소는 public(토큰 없음), 노트가 저장되는 볼트 저장소는 private 전제.

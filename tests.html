@@ -22,7 +22,7 @@ function eq(a, b) {
 
 test('파일명 정리', () => {
   eq(N.sanitizeFileName(' 코스모스: 가능한 세계들? '), '코스모스 가능한 세계들');
-  eq(N.bookPath('A/B|C#1'), 'books/ABC1.md');
+  eq(N.bookPath('A/B|C#1'), 'books/ABC1_인용.md');
 });
 
 test('새 파일: 프론트매터 + 콜아웃', () => {
@@ -76,6 +76,18 @@ test('페이지별 기존 인용 추출', () => {
   const a = N.appendQuote(content, '책', 16, '둘째 문장').content;
   eq(N.existingQuotesForPage(a, 16), ['첫째 문장', '둘째 문장']);
   eq(N.existingQuotesForPage(a, 17), []);
+});
+
+test('파일 전체 인용 파싱 (기록 화면용)', () => {
+  const a = N.appendQuote(null, '책', 16, '첫째').content;
+  const b = N.appendQuote(a, '책', 20, '둘째').content;
+  const c = N.appendQuote(b, '책', null, '셋째').content;
+  eq(N.parseQuotes(c), [
+    { page: 16, text: '첫째' },
+    { page: 20, text: '둘째' },
+    { page: null, text: '셋째' },
+  ]);
+  eq(N.parseQuotes(null), []);
 });
 
 test('텍스트 유사도', () => {

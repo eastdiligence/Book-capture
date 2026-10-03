@@ -18,6 +18,7 @@
   <header class="topbar">
     <h1>독서노트</h1>
     <button id="pendingBtn" class="pending" hidden title="대기 중인 항목 재전송">대기 <b id="pendingCount">0</b></button>
+    <button id="historyBtn" class="icon-btn" aria-label="기록">📚</button>
     <button id="settingsBtn" class="icon-btn" aria-label="설정">⚙︎</button>
   </header>
 
@@ -103,6 +104,16 @@
     <button id="saveSettingsBtn" class="big primary">설정 저장</button>
     <button id="backBtn" class="big">돌아가기</button>
     <p class="version">v<span id="appVersion"></span> · <button id="releaseNotesBtn" class="link-btn" type="button">릴리즈 노트</button></p>
+  </main>
+
+  <!-- 4. 기록 -->
+  <main id="history" class="screen" hidden>
+    <div class="row">
+      <button id="historyBackBtn">← 돌아가기</button>
+    </div>
+    <h2 id="historyTitle">기록</h2>
+    <p id="historyHint" class="hint"></p>
+    <ul id="historyList" class="list"></ul>
   </main>
 
   <!-- OCR 진행 -->

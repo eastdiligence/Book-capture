@@ -1,14 +1,14 @@
 import * as ocr from './ocr/index.js';
 import * as gh from './github.js';
 import * as store from './store.js';
-import { joinLines, findSimilarTitle, normalizeTitle, sanitizeFileName, findDuplicateQuote } from './note.js';
+import { joinLines, findSimilarTitle, normalizeTitle, sanitizeFileName, findDuplicateQuote, parseQuotes } from './note.js';
 import { RELEASES } from './releases.js';
 
-export const APP_VERSION = '1.3.0';
+export const APP_VERSION = '1.4.0';
 
 const $ = (id) => document.getElementById(id);
 const el = {
-  home: $('home'), edit: $('edit'), settings: $('settings'),
+  home: $('home'), edit: $('edit'), settings: $('settings'), history: $('history'),
   titleInput: $('titleInput'), titleSuggest: $('titleSuggest'),
   cameraInput: $('cameraInput'), albumInput: $('albumInput'),
   photo: $('photo'), editTitle: $('editTitle'), pageInput: $('pageInput'),
@@ -18,6 +18,7 @@ const el = {
   modal: $('modal'), modalText: $('modalText'), modalButtons: $('modalButtons'),
   zoom: $('zoom'), zoomImg: $('zoomImg'), toast: $('toast'), configHint: $('configHint'),
   lastSaved: $('lastSaved'),
+  historyTitle: $('historyTitle'), historyHint: $('historyHint'), historyList: $('historyList'),
 };
 
 let photoUrl = null;
@@ -25,7 +26,7 @@ let editingTitle = '';
 
 // ---------- 공통 UI ----------
 function show(screen) {
-  for (const s of [el.home, el.edit, el.settings]) s.hidden = s !== screen;
+  for (const s of [el.home, el.edit, el.settings, el.history]) s.hidden = s !== screen;
   window.scrollTo(0, 0);
 }
 
@@ -324,6 +325,82 @@ window.addEventListener('online', () => {
   flushQueue();
   refreshTitles();
 });
+
+// ---------- 기록 (책별 저장 로그, GitHub에서 직접 조회) ----------
+let historyBook = null; // null이면 책 목록 화면, 문자열이면 그 책의 인용 목록 화면
+
+function historyMessage(msg) {
+  el.historyHint.textContent = msg;
+  el.historyHint.hidden = !msg;
+  el.historyList.replaceChildren();
+}
+
+$('historyBtn').onclick = () => {
+  historyBook = null;
+  show(el.history);
+  renderHistoryBookList();
+};
+$('historyBackBtn').onclick = () => {
+  if (historyBook) {
+    historyBook = null;
+    renderHistoryBookList();
+  } else {
+    show(el.home);
+  }
+};
+
+async function renderHistoryBookList() {
+  el.historyTitle.textContent = '기록';
+  if (!gh.isConfigured(cfg())) return historyMessage('먼저 ⚙︎ 설정에서 GitHub 저장소와 토큰을 입력하세요.');
+  if (!navigator.onLine) return historyMessage('오프라인 상태입니다. 온라인일 때 다시 열어주세요.');
+  historyMessage('불러오는 중…');
+  try {
+    const titles = await gh.listBookTitles(cfg());
+    if (!titles.length) return historyMessage('아직 저장된 책이 없습니다.');
+    el.historyHint.hidden = true;
+    el.historyList.replaceChildren(
+      ...titles.map((title) => {
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.className = 'row-btn';
+        btn.textContent = title;
+        btn.onclick = () => openHistoryBook(title);
+        li.append(btn);
+        return li;
+      })
+    );
+  } catch (e) {
+    historyMessage(errorMessage(e));
+  }
+}
+
+async function openHistoryBook(title) {
+  historyBook = title;
+  el.historyTitle.textContent = title;
+  historyMessage('불러오는 중…');
+  try {
+    const content = await gh.fetchBookContent(cfg(), title);
+    const quotes = parseQuotes(content).reverse(); // 최근 저장한 인용부터
+    if (!quotes.length) return historyMessage('저장된 인용이 없습니다.');
+    el.historyHint.hidden = true;
+    el.historyList.replaceChildren(
+      ...quotes.map(({ page, text }) => {
+        const li = document.createElement('li');
+        li.className = 'quote-card';
+        const p = document.createElement('p');
+        p.className = 'quote-page';
+        p.textContent = page ? `p.${page}` : '페이지 없음';
+        const body = document.createElement('p');
+        body.className = 'quote-text';
+        body.textContent = text;
+        li.append(p, body);
+        return li;
+      })
+    );
+  } catch (e) {
+    historyMessage(errorMessage(e));
+  }
+}
 
 // ---------- 설정 ----------
 const sf = {
