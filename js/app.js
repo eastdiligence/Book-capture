@@ -2,8 +2,9 @@ import * as ocr from './ocr/index.js';
 import * as gh from './github.js';
 import * as store from './store.js';
 import { joinLines, findSimilarTitle, normalizeTitle, sanitizeFileName, findDuplicateQuote } from './note.js';
+import { RELEASES } from './releases.js';
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.2.0';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -394,6 +395,12 @@ $('testBtn').onclick = async () => {
   }
 };
 
+// ---------- 릴리즈 노트 ----------
+$('releaseNotesBtn').onclick = () => {
+  const text = RELEASES.map((r) => `v${r.version} (${r.date})\n${r.notes.map((n) => `· ${n}`).join('\n')}`).join('\n\n');
+  ask(text, [{ label: '닫기', value: true, primary: true }]);
+};
+
 // ---------- 시작 ----------
 $('appVersion').textContent = APP_VERSION;
 el.titleInput.value = store.lastTitle.get();
@@ -406,4 +413,11 @@ if (navigator.onLine) setTimeout(() => ocr.warmUp(), 1500);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('SW 등록 실패', e));
+  // 백그라운드에서 새 서비스워커가 활성화되면 즉시 새로고침해 낡은 모듈이 계속 쓰이지 않게 함
+  let refreshed = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshed) return;
+    refreshed = true;
+    location.reload();
+  });
 }

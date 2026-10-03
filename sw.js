@@ -1,6 +1,6 @@
 // 앱 셸 캐시. 셸은 네트워크 우선이라 온라인이면 새 파일이 바로 반영된다.
 // 파일을 추가/삭제했을 때만 SHELL_FILES와 VERSION을 고치면 된다.
-const VERSION = 'v1.1.0';
+const VERSION = 'v1.2.0';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = 'runtime-cdn'; // tesseract.js 등 버전 고정된 CDN 파일
 
@@ -18,6 +18,7 @@ const SHELL_FILES = [
   './js/ocr/googlevision.js',
   './js/ocr/pagenum.js',
   './js/ocr/layout.js',
+  './js/releases.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -45,9 +46,11 @@ self.addEventListener('fetch', (e) => {
   if (url.hostname === 'api.github.com') return;
 
   // 같은 출처(앱 셸): 네트워크 우선, 실패 시 캐시 → 온라인이면 항상 최신, 오프라인이면 캐시로 동작
+  // cache: 'no-store'가 아니면 GitHub Pages의 Cache-Control(10분)에 걸려 브라우저가 네트워크 요청 없이
+  // 낡은 응답을 돌려줄 수 있어, "온라인이면 항상 최신"이 깨짐.
   if (url.origin === location.origin) {
     e.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-store' })
         .then((res) => {
           if (res.ok) {
             const copy = res.clone();
