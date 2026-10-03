@@ -46,6 +46,17 @@ test('페이지 없음 → q순번', () => {
   eq(N.appendQuote(a.content, '책', null, '둘').blockId, 'q2');
 });
 
+test('내 생각을 함께 저장하면 콜아웃 2개', () => {
+  const r = N.appendQuote(null, '책', 8, '인용문', '내 생각');
+  eq(r.blockId, 'p8-1');
+  eq(r.thoughtBlockId, 'p8-2');
+  eq(r.content, '---\ntype: book-note\ntitle: 책\n---\n\n> [!quote] 책 · p.8\n> 인용문\n> ^p8-1\n\n> [!note] 생각 · p.8\n> 내 생각\n> ^p8-2\n');
+
+  const noThought = N.appendQuote(null, '책', 8, '인용문');
+  eq(noThought.thoughtBlockId, null);
+  eq(noThought.content.includes('[!note]'), false);
+});
+
 test('본문 속 빈 줄은 > 로 유지', () => {
   eq(N.buildCallout('책', 1, '가\n\n나', 'p1-1'), '> [!quote] 책 · p.1\n> 가\n>\n> 나\n> ^p1-1\n');
 });

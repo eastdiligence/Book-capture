@@ -4,7 +4,7 @@ import * as store from './store.js';
 import { joinLines, findSimilarTitle, normalizeTitle, sanitizeFileName, findDuplicateQuote, parseQuotes } from './note.js';
 import { RELEASES } from './releases.js';
 
-export const APP_VERSION = '1.4.0';
+export const APP_VERSION = '1.5.0';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -12,7 +12,7 @@ const el = {
   titleInput: $('titleInput'), titleSuggest: $('titleSuggest'),
   cameraInput: $('cameraInput'), albumInput: $('albumInput'),
   photo: $('photo'), editTitle: $('editTitle'), pageInput: $('pageInput'),
-  pageSuggest: $('pageSuggest'), textInput: $('textInput'),
+  pageSuggest: $('pageSuggest'), textInput: $('textInput'), thoughtInput: $('thoughtInput'),
   pendingBtn: $('pendingBtn'), pendingCount: $('pendingCount'),
   progress: $('progress'), progressLabel: $('progressLabel'), progressBar: $('progressBar'),
   modal: $('modal'), modalText: $('modalText'), modalButtons: $('modalButtons'),
@@ -170,6 +170,7 @@ async function startOcr(file) {
 function openEditor(title, { text, page }) {
   el.editTitle.textContent = title;
   el.textInput.value = text;
+  el.thoughtInput.value = '';
   el.pageInput.value = page ?? '';
 
   const last = store.lastPage.get(title);
@@ -207,11 +208,12 @@ function leaveEditor() {
   el.photo.removeAttribute('src');
   el.zoomImg.removeAttribute('src');
   el.textInput.value = '';
+  el.thoughtInput.value = '';
   show(el.home);
 }
 
 $('cancelBtn').onclick = async () => {
-  if (el.textInput.value.trim()) {
+  if (el.textInput.value.trim() || el.thoughtInput.value.trim()) {
     const ok = await ask('작성 중인 내용을 버릴까요?', [
       { label: '계속 편집', value: false },
       { label: '버리기', value: true, primary: true },
@@ -224,6 +226,7 @@ $('cancelBtn').onclick = async () => {
 // ---------- 저장 ----------
 $('saveBtn').onclick = async () => {
   const text = el.textInput.value.trim();
+  const thought = el.thoughtInput.value.trim();
   if (!text) return toast('본문이 비어 있습니다');
   const page = el.pageInput.value ? Number(el.pageInput.value) : null;
 
@@ -256,7 +259,7 @@ $('saveBtn').onclick = async () => {
     }
   }
 
-  store.queue.push({ title, page, text });
+  store.queue.push({ title, page, text, thought: thought || undefined });
   store.titles.add(title);
   store.lastPage.set(title, page);
   store.lastTitle.set(title);
@@ -303,7 +306,10 @@ async function flushQueue({ announce = false } = {}) {
       store.queue.remove(item.id);
       sent++;
       updatePending();
-      if (announce) toast(`저장됨: ${res.path.slice(6)} ^${res.blockId}`);
+      if (announce) {
+        const ids = res.thoughtBlockId ? `^${res.blockId}, ^${res.thoughtBlockId}` : `^${res.blockId}`;
+        toast(`저장됨: ${res.path.slice(6)} ${ids}`);
+      }
     }
     if (!announce && sent) toast(`대기 중이던 ${sent}건을 전송했습니다`);
   } catch (e) {

@@ -60,6 +60,7 @@ input[type=text], input[type=password], textarea {
   padding: 12px;
 }
 textarea { resize: vertical; min-height: 40vh; line-height: 1.6; }
+.thought-field textarea { min-height: 15vh; }
 input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
 button {

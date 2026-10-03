@@ -47,25 +47,35 @@ export function nextBlockId(content, page) {
   return page ? `p${page}-${max + 1}` : `q${max + 1}`;
 }
 
-export function buildCallout(title, page, text, blockId) {
-  const header = page ? `> [!quote] ${title} · p.${page}` : `> [!quote] ${title}`;
+function calloutBlock(type, header, text, blockId) {
   const body = text
     .replace(/\r\n?/g, '\n')
     .trim()
     .split('\n')
     .map((line) => (line.trim() ? `> ${line.trimEnd()}` : '>'));
-  return [header, ...body, `> ^${blockId}`].join('\n') + '\n';
+  return [`> [!${type}] ${header}`, ...body, `> ^${blockId}`].join('\n') + '\n';
 }
 
-/** 기존 내용(없으면 null) 끝에 인용을 추가한 새 파일 내용 */
-export function appendQuote(existing, title, page, text) {
+export function buildCallout(title, page, text, blockId) {
+  return calloutBlock('quote', page ? `${title} · p.${page}` : title, text, blockId);
+}
+
+/** 인용과 별개로, 그 페이지를 읽고 든 생각을 담는 콜아웃 */
+export function buildThoughtCallout(page, text, blockId) {
+  return calloutBlock('note', page ? `생각 · p.${page}` : '생각', text, blockId);
+}
+
+/** 기존 내용(없으면 null) 끝에 인용(+ 선택적으로 내 생각)을 추가한 새 파일 내용 */
+export function appendQuote(existing, title, page, text, thought) {
   const base = existing ?? frontmatter(title);
   const blockId = nextBlockId(base, page);
-  const trimmed = base.replace(/\s+$/, '');
-  return {
-    content: `${trimmed}\n\n${buildCallout(title, page, text, blockId)}`,
-    blockId,
-  };
+  let content = `${base.replace(/\s+$/, '')}\n\n${buildCallout(title, page, text, blockId)}`;
+  let thoughtBlockId = null;
+  if (thought) {
+    thoughtBlockId = nextBlockId(content, page);
+    content = `${content.replace(/\s+$/, '')}\n\n${buildThoughtCallout(page, thought, thoughtBlockId)}`;
+  }
+  return { content, blockId, thoughtBlockId };
 }
 
 /** 줄마다 끊긴 텍스트를 문단으로 합침 (빈 줄로 구분된 문단은 유지) */

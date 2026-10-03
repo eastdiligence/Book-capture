@@ -1,6 +1,6 @@
 # Book-capture (독서노트 PWA)
 
-책 페이지 사진 → OCR(Tesseract.js, kor+eng) → 사용자가 수정 → GitHub Contents API로 볼트 저장소의 `books/{책제목}_인용.md`에 옵시디언 `[!quote]` 콜아웃으로 커밋하는 iPhone용 PWA. 서버·빌드 없음, GitHub Pages로 배포. UI는 한국어, 모바일 우선.
+책 페이지 사진 → OCR(Tesseract.js, kor+eng) → 사용자가 수정(+ 선택적으로 내 생각 작성) → GitHub Contents API로 볼트 저장소의 `books/{책제목}_인용.md`에 옵시디언 `[!quote]`(+선택적으로 `[!note]` 생각) 콜아웃으로 커밋하는 iPhone용 PWA. 서버·빌드 없음, GitHub Pages로 배포. UI는 한국어, 모바일 우선.
 
 ## 실행 / 테스트
 - Node 없음. 정적 파일이라 `python -m http.server 8765` 후 http://localhost:8765/ (SW는 localhost/HTTPS에서만 동작).
@@ -16,6 +16,7 @@
 
 ## 지켜야 할 규칙
 - 저장 형식은 요청 사양 그대로: 프론트매터(`type: book-note`, `title`) → 빈 줄 → `> [!quote] 제목 · p.N` → `> 본문` → `> ^pN-k` (페이지 없으면 `> ^q순번`, 블록ID도 `>`로 콜아웃 안에 포함— 아니면 `[[책#^p123-1]]` 링크가 콜아웃을 못 찾음). 항상 파일 끝에 추가만 하고 기존 내용은 수정하지 않는다.
+- 수정 화면의 "내 생각"을 채우면 같은 커밋에 `[!note] 생각 · p.N` 콜아웃을 하나 더 붙인다(`js/note.js`의 `appendQuote(existing, title, page, text, thought)`). 블록ID는 `[!quote]`와 같은 `pN-` 번호대를 공유해 순서대로 증가(예: 인용=`^p8-1`, 생각=`^p8-2`). 비워두면 전과 동일하게 콜아웃 1개만 커밋됨.
 - 블록 ID는 커밋 직전에 GET한 내용으로 계산한다(409/422 시 재조회 후 1회 재시도).
 - 앱은 `books/*.md` 외 경로에 쓰지 않는다(`github.js`의 `assertWritable`). 리뷰 파일은 절대 건드리지 않는다.
 - 파일명은 `{책제목}_인용.md` (접미사는 `js/note.js`의 `FILE_SUFFIX`). vault의 `독서/` 폴더 등에 이미 같은 제목 노트가 있을 수 있어 `[[책제목]]` 링크와 안 겹치게 구분하기 위함. 프론트매터의 `title`과 콜아웃 헤더에는 접미사를 붙이지 않음(파일명만).

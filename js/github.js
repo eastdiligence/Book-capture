@@ -87,13 +87,13 @@ export async function fetchBookContent(cfg, title) {
   return (await getFile(cfg, bookPath(title))).content;
 }
 
-/** 인용 하나를 책 파일 끝에 추가해 커밋. 충돌 시 재조회 후 1회 재시도 */
-export async function commitQuote(cfg, { title, page, text }) {
+/** 인용(+ 선택적으로 내 생각)을 책 파일 끝에 추가해 커밋 (한 커밋에 콜아웃 1~2개). 충돌 시 재조회 후 1회 재시도 */
+export async function commitQuote(cfg, { title, page, text, thought }) {
   const path = bookPath(title);
   assertWritable(path);
   for (let attempt = 0; ; attempt++) {
     const { content, sha } = await getFile(cfg, path);
-    const next = appendQuote(content, title, page, text);
+    const next = appendQuote(content, title, page, text, thought);
     try {
       await request(cfg, 'PUT', `/contents/${encodePath(path)}`, {
         body: {
@@ -103,7 +103,7 @@ export async function commitQuote(cfg, { title, page, text }) {
           ...(sha ? { sha } : {}),
         },
       });
-      return { path, blockId: next.blockId };
+      return { path, blockId: next.blockId, thoughtBlockId: next.thoughtBlockId };
     } catch (e) {
       // 409: sha 불일치, 422: 그 사이 파일이 생성됨(sha 누락)
       if (attempt === 0 && (e.status === 409 || e.status === 422)) continue;
